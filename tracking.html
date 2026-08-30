@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Track — demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-gray-800">
+  <div class="max-w-3xl mx-auto px-6 py-10">
+    <h1 class="text-2xl font-bold mb-4">Track a Package — Demo</h1>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700">Enter tracking number</label>
+      <input id="trackingInput" class="mt-2 p-2 border rounded w-full" placeholder="e.g. LXD-2026-00001" />
+      <button id="lookupBtn" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded">Lookup</button>
+    </div>
+
+    <div id="result" class="hidden bg-gray-50 p-4 rounded border">
+      <h2 class="font-semibold" id="tn">Tracking: —</h2>
+      <p id="status" class="text-sm text-gray-600">Status: —</p>
+
+      <h3 class="mt-4 font-medium">Timeline</h3>
+      <ul id="timeline" class="mt-2 space-y-2"></ul>
+    </div>
+  </div>
+
+  <script>
+    const demo = {
+      "LXD-2026-00001": {
+        status: "In transit",
+        events: [
+          {time:"2026-08-25 09:12", location:"New York, NY", desc:"Picked up"},
+          {time:"2026-08-26 14:30", location:"Philadelphia, PA", desc:"In transit"},
+          {time:"2026-08-27 08:10", location:"Baltimore, MD", desc:"Arrived at sort facility"}
+        ]
+      },
+      "LXD-2026-00002": { status:"Delivered", events:[{time:"2026-08-24 11:00", location:"Los Angeles, CA", desc:"Delivered"}] }
+    };
+
+    document.getElementById('lookupBtn').addEventListener('click', () => {
+      const tn = document.getElementById('trackingInput').value.trim();
+      const r = document.getElementById('result');
+      const data = demo[tn];
+      if (!data) { alert('Tracking number not found in demo data'); return; }
+      r.classList.remove('hidden');
+      document.getElementById('tn').textContent = `Tracking: ${tn}`;
+      document.getElementById('status').textContent = `Status: ${data.status}`;
+      const tl = document.getElementById('timeline');
+      tl.innerHTML = '';
+      data.events.forEach(e => {
+        const li = document.createElement('li');
+        li.textContent = `${e.time} — ${e.location} — ${e.desc}`;
+        tl.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>
