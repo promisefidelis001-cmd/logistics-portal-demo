@@ -13,3 +13,11 @@ A polished demo scaffold for a logistics/parcel-tracking website (landing page, 
 Related project: https://github.com/promisefidelis001-cmd/-phone-number-checker
 
 License: MIT
+
+[![Pages](https://github.com/promisefidelis001-cmd/logistics-portal-demo/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/promisefidelis001-cmd/logistics-portal-demo/actions/workflows/deploy-pages.yml)
+
+Live demo: https://promisefidelis001-cmd.github.io/logistics-portal-demo/
+
+![Demo screenshot](assets/screenshot.svg)
+
+Status: Demo site (static). To turn into a working app, convert to Next.js and add a backend API.
