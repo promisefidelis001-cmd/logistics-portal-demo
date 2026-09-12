@@ -1,30 +1,183 @@
-name: Deploy to GitHub Pages
 
-on:
-  push:
-    branches:
-      - main
+previews:
+  generation: automatic
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+services:
+  - type: web
+    runtime: ruby
+    name: sinatra-app
+    repo: https://github.com/render-examples/sinatra
+    numInstances: 3
+    region: frankfurt
+    plan: 1c-2g
+    branch: prod
+    buildCommand: bundle install
+    preDeployCommand: bundle exec ruby migrate.rb
+    startCommand: bundle exec ruby main.rb
+    autoDeployTrigger: 'off'
+    maxShutdownDelaySeconds: 120
+    initialDeployHook: ./seed_database.sh
+    domains:
+      - example.com
+      - www.example.org
+    renderSubdomainPolicy: disabled
+    envVars:
+      - key: API_BASE_URL
+        value: https://api.example.com
+      - key: APP_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mydatabase
+          property: connectionString
+      - key: MINIO_PASSWORD
+        fromService:
+          name: minio
+          type: pserv
+          envVarKey: MINIO_ROOT_PASSWORD
+      - fromGroup: my-env-group
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
+      - source: 198.51.100.1
+        description: home
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  - type: web
+    runtime: docker
+    name: webdis
+    repo: https://github.com/render-examples/webdis.git
+    rootDir: webdis
+    dockerCommand: ./webdis.sh
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetMemoryPercent: 60
+      targetCPUPercent: 60
+    maintenanceMode:
+      enabled: true
+      uri: https://example.com/maintenance
+    healthCheckPath: /
+    registryCredential:
+      fromRegistryCreds:
+        name: my-credentials
+    envVars:
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: lightning
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: lightning
+          property: port
+      - fromGroup: conc-settings
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  - type: pserv
+    runtime: docker
+    name: minio
+    repo: https://github.com/render-examples/minio.git
+    envVars:
+      - key: MINIO_ROOT_PASSWORD
+        generateValue: true
+      - key: MINIO_ROOT_USER
+        sync: false
+      - key: PORT
+        value: 10000
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 10
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+  - type: cron
+    name: date
+    runtime: python
+    schedule: '0 * * * *'
+    buildCommand: 'true'
+    startCommand: date
+    repo: https://github.com/render-examples/docker.git
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
+  - type: worker
+    name: queue
+    runtime: docker
+    dockerfilePath: ./sub/Dockerfile
+    dockerContext: ./sub/src
+    branch: queue
 
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+  - type: web
+    name: my-blog
+    runtime: static
+    buildCommand: yarn build
+    staticPublishPath: ./build
+    previews:
+      generation: automatic
+    buildFilter:
+      paths:
+        - src*.js
+      ignoredPaths:
+        - src*.test.js
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: sameorigin
+    routes:
+      - type: redirect
+        source: /old
+        destination: /new
+      - type: rewrite
+        source: /a/*
+        destination: /a
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
+      - source: 198.51.100.1
+        description: home
+
+  - type: keyvalue
+    name: lightning
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: free
+    maxmemoryPolicy: noeviction
+    persistenceMode: off
+
+databases:
+  - name: elephant
+    databaseName: mydb
+    user: adrian
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
+      - source: 198.51.100.1
+        description: home
+    readReplicas:
+      - name: elephant-replica
+
+  - name: private database
+    databaseName: private
+    ipAllowList: []
+
+  - name: pachyderm
+    plan: 0.5c-1g
+    diskSizeGB: 35
+    storageAutoscalingEnabled: true
+
+  - name: highly available database
+    plan: 2c-8g
+    highAvailability:
+      enabled: true
+
+envVarGroups:
+  - name: conc-settings
+    envVars:
+      - key: CONCURRENCY
+        value: 2
+      - key: SECRET
+        generateValue: true
+  - name: stripe
+    envVars:
+      - key: STRIPE_API_URL
+        value: https://api.stripe.com/v2
