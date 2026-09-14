@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth');
 const shipmentRoutes = require('./routes/shipments');
+const trackingRoutes = require('./routes/tracking');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.get('/health', (req, res) => {
 // API routes.
 app.use('/api/auth', authRoutes);
 app.use('/api/shipments', shipmentRoutes);
+app.use('/api/tracking', trackingRoutes);
 
 // 404 handler.
 app.use((req, res) => {
@@ -86,7 +88,9 @@ app.listen(PORT, () => {
   console.log(`[SERVER] Health: http://localhost:${PORT}/health`);
   console.log(`[SERVER] Auth:   http://localhost:${PORT}/api/auth`);
   console.log(`[SERVER] Ships:  http://localhost:${PORT}/api/shipments`);
+  console.log(`[SERVER] Track:  http://localhost:${PORT}/api/tracking`);
   console.log('==========================================');
 });
 
+module.exports = app;
 module.exports = app;
